@@ -698,3 +698,224 @@ void test_engine_2d_transmission_line_near_field_1d(){
     engine.unset();
     
 }
+
+//
+
+void test_engine_1d_single_loop_capacitor_sweep(){
+
+
+    const real_t MHz=1.0E+6;
+    const real_t cm=1.0E-2;
+    const real_t mm=1.0E-3;
+    const real_t pF=1.0E-12;
+
+    // problem defintions
+    real_t lambda, clmax;
+    const complex_t mu_b=1.0, eps_b=1.0;
+    const real_t a=1.0*mm;
+    const real_t radius=10.0*cm;
+    const size_t N_ports=4;
+    const int_t pg1=1, pg2=2, pg3=3, pg4=4; 
+
+    const size_t Ns=401;
+    const real_t freq=297.0*MHz;
+    real_t C_min=0.01*pF;
+    real_t C_max=2.0*pF;
+    range_t C;
+    C.set(C_min, C_max, Ns);
+    C.linspace();
+
+    const complex_t Z_0=50.0;
+
+    engine_t engine;
+    file_t file;
+    file.open("data/S_matrix_cap.txt", 'w');
+    const complex_t j=complex_t(0.0, 1.0);
+
+    for (size_t i=0; i<Ns; i++){
+        print("\nstep %zu:\n", i);
+        lambda = c_0/freq;
+        clmax = 5.0*mm;
+        const real_t omega=2.0*pi*freq;
+        vector_t<real_t> p1=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p2=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p3=vector_t<real_t>(+1.0, +0.0, 0.0);
+        vector_t<real_t> p4=vector_t<real_t>(+1.0, +0.0, 0.0);
+        create_single_loop(radius, clmax);
+        engine.set(freq, mu_b, eps_b, clmax, 1.0, a, N_ports);
+        engine.assign_port(0, +1.0, Z_0, pg1, p1, 0.0, 0.0);
+        engine.assign_port(1, +0.0, 1.0/(j*omega*C(i)), pg2, p2, 0.0, 0.0);
+        engine.assign_port(2, +0.0, 1.0/(j*omega*C(i)), pg3, p3, 0.0, 0.0);
+        engine.assign_port(3, +0.0, 1.0/(j*omega*C(i)), pg4, p4, 0.0, 0.0);
+
+        engine.compute_V_m_ports();
+        engine.compute_Z_mn();
+        engine.compute_I_n();
+        // engine.export_solutions();
+        complex_t Z=engine.compute_Z_in(0);
+        const complex_t S_11 = (Z-Z_0)/(Z+Z_0);
+
+        file.write("%21.14E %21.14E ", C(i), abs(S_11));
+        file.write("\n");
+        engine.unset(); 
+
+    }
+    file.close();
+
+    C.unset();
+
+}
+
+void test_engine_1d_single_loop(){
+
+
+    const real_t MHz=1.0E+6;
+    const real_t cm=1.0E-2;
+    const real_t mm=1.0E-3;
+    const real_t pF=1.0E-12;
+
+    // problem defintions
+    real_t lambda, clmax;
+    const complex_t mu_b=1.0, eps_b=1.0;
+    const real_t a=1.0*mm;
+    const real_t radius=10.0*cm;
+    const size_t N_ports=4;
+    const int_t pg1=1, pg2=2, pg3=3, pg4=4; 
+
+    const size_t Ns=401;
+    real_t freq_min=250.0*MHz;
+    real_t freq_max=350.0*MHz;
+    range_t freq;
+    freq.set(freq_min, freq_max, Ns);
+    freq.linspace();
+
+    const complex_t Z_0=50.0;
+
+    engine_t engine;
+    file_t file;
+    file.open("data/S_matrix_freq.txt", 'w');
+    const complex_t j=complex_t(0.0, 1.0);
+    const real_t C_tuning=0.85*pF;
+
+    for (size_t i=0; i<Ns; i++){
+        print("\nstep %zu:\n", i);
+        lambda = c_0/freq(i);
+        clmax = 5.0*mm;
+        const real_t omega=2.0*pi*freq(i);
+        vector_t<real_t> p1=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p2=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p3=vector_t<real_t>(+1.0, +0.0, 0.0);
+        vector_t<real_t> p4=vector_t<real_t>(+1.0, +0.0, 0.0);
+        create_single_loop(radius, clmax);
+        engine.set(freq(i), mu_b, eps_b, clmax, 1.0, a, N_ports);
+        engine.assign_port(0, +1.0, Z_0, pg1, p1, 0.0, 0.0);
+        engine.assign_port(1, +0.0, 1.0/(j*omega*C_tuning), pg2, p2, 0.0, 0.0);
+        engine.assign_port(2, +0.0, 1.0/(j*omega*C_tuning), pg3, p3, 0.0, 0.0);
+        engine.assign_port(3, +0.0, 1.0/(j*omega*C_tuning), pg4, p4, 0.0, 0.0);
+
+        engine.compute_V_m_ports();
+        engine.compute_Z_mn();
+        engine.compute_I_n();
+        // engine.export_solutions();
+        complex_t Z=engine.compute_Z_in(0);
+        const complex_t S_11 = (Z-Z_0)/(Z+Z_0);
+
+        file.write("%21.14E %21.14E ", freq(i), abs(S_11));
+        file.write("\n");
+        engine.unset(); 
+
+    }
+    file.close();
+
+    freq.unset();
+
+}
+
+void test_engine_1d_two_loops_overlapping(){
+
+
+    const real_t MHz=1.0E+6;
+    const real_t cm=1.0E-2;
+    const real_t mm=1.0E-3;
+
+    // problem defintions
+    const real_t pF=1.0E-12;
+    const real_t freq=297.0*MHz;
+    const real_t lambda = c_0/freq;
+    const real_t clmax=5.0*mm;
+    const complex_t mu_b=1.0, eps_b=1.0;
+    const real_t a=1.0*mm;
+    const real_t radius=10.0*cm;
+    const real_t gap=2.0*mm;
+    const size_t N_ports=8;
+    const int_t pg1=1; 
+    const int_t pg2=2; 
+    const int_t pg3=3; 
+    const int_t pg4=4; 
+    const int_t pg5=5; 
+    const int_t pg6=6; 
+    const int_t pg7=7; 
+    const int_t pg8=8; 
+
+    const size_t Ns=1001;
+    real_t L_spacing_min=0.0*cm;
+    real_t L_spacing_max=40.0*cm;
+    range_t L_spacing;
+    L_spacing.set(L_spacing_min, L_spacing_max, Ns);
+    L_spacing.linspace();
+
+    const complex_t Z_0=50.0;
+
+    engine_t engine;
+    file_t file;
+    file.open("data/S_matrix_spacing.txt", 'w');
+    const complex_t j=complex_t(0.0, 1.0);
+    const real_t C_tuning=0.85*pF;
+
+    for (size_t i=0; i<Ns; i++){
+        print("\nstep %zu:\n", i);
+        vector_t<real_t> p1=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p2=vector_t<real_t>(+0.0, +1.0, 0.0);
+
+        vector_t<real_t> p3=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p4=vector_t<real_t>(+1.0, +0.0, 0.0);
+        vector_t<real_t> p5=vector_t<real_t>(+1.0, +0.0, 0.0);
+
+        vector_t<real_t> p6=vector_t<real_t>(+0.0, +1.0, 0.0);
+        vector_t<real_t> p7=vector_t<real_t>(+1.0, +0.0, 0.0);
+        vector_t<real_t> p8=vector_t<real_t>(+1.0, +0.0, 0.0);
+
+        real_t omega=2.0*pi*freq;
+
+        create_two_loops(radius, L_spacing(i), gap, clmax);
+        engine.set(freq, mu_b, eps_b, clmax, 1.0, a, N_ports);
+        engine.assign_port(0, +1.0, Z_0, pg1, p1, 0.0, 0.0);
+        engine.assign_port(1, +0.0, Z_0, pg2, p2, 0.0, 0.0);
+        engine.assign_port(2, +0.0, 1.0/(j*omega*C_tuning), pg3, p3, 0.0, 0.0);
+        engine.assign_port(3, +0.0, 1.0/(j*omega*C_tuning), pg4, p4, 0.0, 0.0);
+        engine.assign_port(4, +0.0, 1.0/(j*omega*C_tuning), pg5, p5, 0.0, 0.0);
+        engine.assign_port(5, +0.0, 1.0/(j*omega*C_tuning), pg6, p6, 0.0, 0.0);
+        engine.assign_port(6, +0.0, 1.0/(j*omega*C_tuning), pg7, p7, 0.0, 0.0);
+        engine.assign_port(7, +0.0, 1.0/(j*omega*C_tuning), pg8, p8, 0.0, 0.0);
+
+        engine.compute_Z_mn();
+
+        
+        engine.compute_V_m_ports();
+        engine.compute_Z_mn();
+        engine.compute_I_n();
+        // engine.export_solutions();
+        complex_t Z=engine.compute_Z_in(0);
+        const complex_t S_11 = (Z-Z_0)/(Z+Z_0);
+        const complex_t S_21 = engine.compute_S_mutual(1);
+
+        file.write("%21.14E %21.14E %21.14E\n", L_spacing(i), abs(S_11), abs(S_21));
+
+        engine.unset(); 
+
+    }
+    file.close();
+
+    L_spacing.unset();
+
+}

@@ -31,5 +31,8 @@ void test_engine_1d_RCS_vertical_wire();
 void test_engine_1d_far_field_transmission_line();
 void test_engine_1d_near_field_vertical_dipole();
 void test_engine_2d_transmission_line_near_field_1d();
+void test_engine_1d_single_loop_capacitor_sweep();
+void test_engine_1d_single_loop();
+void test_engine_1d_two_loops_overlapping();
 
 #endif

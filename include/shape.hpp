@@ -266,5 +266,7 @@ void create_patch_antenna();
 void create_sheet(const real_t Lx, const real_t Ly, const real_t clmax);
 void create_box();
 void create_mixed_shape(const real_t clmax_1, const real_t clmax_2);
+void create_single_loop(const real_t radius, const real_t clmax);
+void create_two_loops(const real_t radius, const real_t L_spacing, const real_t gap, const real_t clmax);
 
 #endif

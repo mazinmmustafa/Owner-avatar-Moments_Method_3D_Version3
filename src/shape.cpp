@@ -362,8 +362,8 @@ void call_gmsh(const real_t tol){
     int_t max_length=200;
     char *cmd=(char*)calloc(max_length, sizeof(char));
     print("calling gmsh...");
-    sprintf(cmd, "gmsh mesh/shape.geo -3 -clmax %0.4f -format vtk -save_all -o mesh/shape.vtk > mesh/shape_log.txt", tol);
-    // sprintf(cmd, "gmsh mesh/shape.geo -2 -clmax %0.4f -format vtk -save_all -o mesh/shape.vtk > mesh/shape_log.txt", tol);
+    // sprintf(cmd, "gmsh mesh/shape.geo -3 -clmax %0.4f -format vtk -save_all -o mesh/shape.vtk > mesh/shape_log.txt", tol);
+    sprintf(cmd, "gmsh mesh/shape.geo -2 -clmax %0.4f -format vtk -save_all -o mesh/shape.vtk > mesh/shape_log.txt", tol);
     assert_error(!system(cmd), "unable to mesh geometry");
     print(", done!\n");
     #ifdef __windows__
@@ -582,5 +582,169 @@ void create_mixed_shape(const real_t clmax_1, const real_t clmax_2){
     file.write("Field[2] = Constant;\n");
     file.write("Field[2].VIn = %21.14E;\n", clmax_2);
     file.write("Field[2].VolumesList = {2};\n");
+    file.close();
+}
+
+void create_single_loop(const real_t radius, const real_t clmax){
+    assert_error(radius>0, "invalid radius");
+    const real_t port_length= radius/10.0 < clmax ? radius/10.0 : clmax;
+    const real_t theta=asin(port_length/(2.0*radius));
+    file_t file;
+    file.open("mesh/shape.geo", 'w');
+    file.write("SetFactory(\"OpenCASCADE\");\n");
+    //
+    file.write("Circle(1) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, 0.0, 0.0, radius,
+        0.0+theta, pi/2.0-theta);
+    file.write("Circle(2) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, 0.0, 0.0, radius,
+        pi/2.0+theta, pi-theta);
+    file.write("Circle(3) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, 0.0, 0.0, radius,
+        pi+theta, (3.0/2.0)*pi-theta);
+    file.write("Circle(4) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, 0.0, 0.0, radius,
+        (3.0/2.0)*pi+theta, 2.0*pi-theta);
+
+    file.write("MeshSize {1, 2, 3, 4} = %21.14E;\n", clmax);
+
+    file.write("Point(9) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), -port_length/2.0, 0.0);
+    file.write("Point(10) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), 0.0, 0.0);
+    file.write("Point(11) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), +port_length/2.0, 0.0);
+
+    file.write("Line(5) = {9, 10};\n");
+    file.write("Line(6) = {10, 11};\n");
+
+    file.write("Point(12) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), -port_length/2.0, 0.0);
+    file.write("Point(13) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), 0.0, 0.0);
+    file.write("Point(14) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), +port_length/2.0, 0.0);
+
+    file.write("Line(7) = {12, 13};\n");
+    file.write("Line(8) = {13, 14};\n");
+
+    file.write("Point(15) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -port_length/2.0, -radius*cos(theta), 0.0);
+    file.write("Point(16) = {%21.14E, %21.14E, %21.14E, 1.0};\n", 0.0, -radius*cos(theta), 0.0);
+    file.write("Point(17) = {%21.14E, %21.14E, %21.14E, 1.0};\n", +port_length/2.0, -radius*cos(theta), 0.0);
+
+    file.write("Line(9) = {15, 16};\n");
+    file.write("Line(10) = {16, 17};\n");
+
+    file.write("Point(18) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -port_length/2.0, +radius*cos(theta), 0.0);
+    file.write("Point(19) = {%21.14E, %21.14E, %21.14E, 1.0};\n", 0.0, +radius*cos(theta), 0.0);
+    file.write("Point(20) = {%21.14E, %21.14E, %21.14E, 1.0};\n", +port_length/2.0, +radius*cos(theta), 0.0);
+
+    file.write("Line(11) = {18, 19};\n");
+    file.write("Line(12) = {19, 20};\n");
+
+    file.write("Physical Curve(\"Port_1\", 1) = {5, 6};\n");
+    file.write("Physical Curve(\"Port_2\", 2) = {7, 8};\n");
+    file.write("Physical Curve(\"Port_3\", 3) = {9, 10};\n");
+    file.write("Physical Curve(\"Port_4\", 4) = {11, 12};\n");
+    file.write("Physical Curve(\"Wire\", 5) = {1, 2, 3, 4};\n");
+    //
+    file.close();
+}
+
+void create_two_loops(const real_t radius, const real_t L_spacing, const real_t gap, const real_t clmax){
+    assert_error(radius>0, "invalid radius");
+    const real_t port_length= radius/10.0 < clmax ? radius/10.0 : clmax;
+    const real_t theta=asin(port_length/(2.0*radius));
+    file_t file;
+    file.open("mesh/shape.geo", 'w');
+    file.write("SetFactory(\"OpenCASCADE\");\n");
+    //
+    file.write("Circle(1) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, -L_spacing/2.0, -gap/2.0, radius,
+        0.0+theta, pi/2.0-theta);
+    file.write("Circle(2) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, -L_spacing/2.0, -gap/2.0, radius,
+        pi/2.0+theta, pi-theta);
+    file.write("Circle(3) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, -L_spacing/2.0, -gap/2.0, radius,
+        pi+theta, (3.0/2.0)*pi-theta);
+    file.write("Circle(4) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, -L_spacing/2.0, -gap/2.0, radius,
+        (3.0/2.0)*pi+theta, 2.0*pi-theta);
+
+    file.write("MeshSize {1, 2, 3, 4} = %21.14E;\n", clmax);
+
+    file.write("Point(9) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), -port_length/2.0-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(10) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), 0.0-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(11) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), +port_length/2.0-L_spacing/2.0, 0.0-gap/2.0);
+
+    file.write("Line(5) = {9, 10};\n");
+    file.write("Line(6) = {10, 11};\n");
+
+    file.write("Point(12) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), -port_length/2.0-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(13) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), 0.0-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(14) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), +port_length/2.0-L_spacing/2.0, 0.0-gap/2.0);
+
+    file.write("Line(7) = {12, 13};\n");
+    file.write("Line(8) = {13, 14};\n");
+
+    file.write("Point(15) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -port_length/2.0, -radius*cos(theta)-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(16) = {%21.14E, %21.14E, %21.14E, 1.0};\n", 0.0, -radius*cos(theta)-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(17) = {%21.14E, %21.14E, %21.14E, 1.0};\n", +port_length/2.0, -radius*cos(theta)-L_spacing/2.0, 0.0-gap/2.0);
+
+    file.write("Line(9) = {15, 16};\n");
+    file.write("Line(10) = {16, 17};\n");
+
+    file.write("Point(18) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -port_length/2.0, +radius*cos(theta)-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(19) = {%21.14E, %21.14E, %21.14E, 1.0};\n", 0.0, +radius*cos(theta)-L_spacing/2.0, 0.0-gap/2.0);
+    file.write("Point(20) = {%21.14E, %21.14E, %21.14E, 1.0};\n", +port_length/2.0, +radius*cos(theta)-L_spacing/2.0, 0.0-gap/2.0);
+
+    file.write("Line(11) = {18, 19};\n");
+    file.write("Line(12) = {19, 20};\n");
+
+    //
+
+    file.write("Circle(13) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, +L_spacing/2.0, +gap/2.0, radius,
+        0.0+theta, pi/2.0-theta);
+    file.write("Circle(14) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, +L_spacing/2.0, +gap/2.0, radius,
+        pi/2.0+theta, pi-theta);
+    file.write("Circle(15) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, +L_spacing/2.0, +gap/2.0, radius,
+        pi+theta, (3.0/2.0)*pi-theta);
+    file.write("Circle(16) = {%21.14E, %21.14E, %21.14E, %21.14E, %21.14E, %21.14E};\n", 0.0, +L_spacing/2.0, +gap/2.0, radius,
+        (3.0/2.0)*pi+theta, 2.0*pi-theta);
+
+    file.write("MeshSize {13, 14, 15, 16} = %21.14E;\n", clmax);
+
+    file.write("Point(41) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), -port_length/2.0+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(42) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), 0.0+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(43) = {%21.14E, %21.14E, %21.14E, 1.0};\n", radius*cos(theta), +port_length/2.0+L_spacing/2.0, 0.0+gap/2.0);
+
+    file.write("Line(17) = {41, 42};\n");
+    file.write("Line(18) = {42, 43};\n");
+
+    file.write("Point(44) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), -port_length/2.0+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(45) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), 0.0+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(46) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -radius*cos(theta), +port_length/2.0+L_spacing/2.0, 0.0+gap/2.0);
+
+    file.write("Line(19) = {44, 45};\n");
+    file.write("Line(20) = {45, 46};\n");
+
+    file.write("Point(47) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -port_length/2.0, -radius*cos(theta)+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(48) = {%21.14E, %21.14E, %21.14E, 1.0};\n", 0.0, -radius*cos(theta)+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(49) = {%21.14E, %21.14E, %21.14E, 1.0};\n", +port_length/2.0, -radius*cos(theta)+L_spacing/2.0, 0.0+gap/2.0);
+
+    file.write("Line(21) = {47, 48};\n");
+    file.write("Line(22) = {48, 49};\n");
+
+    file.write("Point(50) = {%21.14E, %21.14E, %21.14E, 1.0};\n", -port_length/2.0, +radius*cos(theta)+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(51) = {%21.14E, %21.14E, %21.14E, 1.0};\n", 0.0, +radius*cos(theta)+L_spacing/2.0, 0.0+gap/2.0);
+    file.write("Point(52) = {%21.14E, %21.14E, %21.14E, 1.0};\n", +port_length/2.0, +radius*cos(theta)+L_spacing/2.0, 0.0+gap/2.0);
+
+    file.write("Line(23) = {50, 51};\n");
+    file.write("Line(24) = {51, 52};\n");
+
+    //
+
+    file.write("Physical Curve(\"Port_1_Loop_1\", 1) = {5, 6};\n");
+    file.write("Physical Curve(\"Port_1_Loop_2\", 2) = {17, 18};\n");
+
+    file.write("Physical Curve(\"Port_2_Loop_1\", 3) = {7, 8};\n");
+    file.write("Physical Curve(\"Port_3_Loop_1\", 4) = {9, 10};\n");
+    file.write("Physical Curve(\"Port_4_Loop_1\", 5) = {11, 12};\n");
+
+    file.write("Physical Curve(\"Port_2_Loop_2\", 6) = {19, 20};\n");
+    file.write("Physical Curve(\"Port_3_Loop_2\", 7) = {21, 22};\n");
+    file.write("Physical Curve(\"Port_4_Loop_2\", 8) = {23, 24};\n");
+
+    //
+    file.write("Physical Curve(\"Wire_1\", 9) = {1, 2, 3, 4};\n");
+    file.write("Physical Curve(\"Wire_2\", 10) = {13, 14, 15, 16};\n");
+
     file.close();
 }
