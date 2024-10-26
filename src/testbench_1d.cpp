@@ -743,7 +743,7 @@ void test_engine_1d_single_loop_capacitor_sweep(){
         vector_t<real_t> p4=vector_t<real_t>(+1.0, +0.0, 0.0);
         create_single_loop(radius, clmax);
         engine.set(freq, mu_b, eps_b, clmax, 1.0, a, N_ports);
-        engine.assign_port(0, +1.0, Z_0, pg1, p1, 0.0, 0.0);
+        engine.assign_port(0, +1.0, Z_0+1.0/(j*omega*C(i)), pg1, p1, 0.0, 0.0);
         engine.assign_port(1, +0.0, 1.0/(j*omega*C(i)), pg2, p2, 0.0, 0.0);
         engine.assign_port(2, +0.0, 1.0/(j*omega*C(i)), pg3, p3, 0.0, 0.0);
         engine.assign_port(3, +0.0, 1.0/(j*omega*C(i)), pg4, p4, 0.0, 0.0);
@@ -808,7 +808,7 @@ void test_engine_1d_single_loop(){
         vector_t<real_t> p4=vector_t<real_t>(+1.0, +0.0, 0.0);
         create_single_loop(radius, clmax);
         engine.set(freq(i), mu_b, eps_b, clmax, 1.0, a, N_ports);
-        engine.assign_port(0, +1.0, Z_0, pg1, p1, 0.0, 0.0);
+        engine.assign_port(0, +1.0, Z_0+1.0/(j*omega*C_tuning), pg1, p1, 0.0, 0.0);
         engine.assign_port(1, +0.0, 1.0/(j*omega*C_tuning), pg2, p2, 0.0, 0.0);
         engine.assign_port(2, +0.0, 1.0/(j*omega*C_tuning), pg3, p3, 0.0, 0.0);
         engine.assign_port(3, +0.0, 1.0/(j*omega*C_tuning), pg4, p4, 0.0, 0.0);
@@ -846,7 +846,7 @@ void test_engine_1d_two_loops_overlapping(){
     const complex_t mu_b=1.0, eps_b=1.0;
     const real_t a=1.0*mm;
     const real_t radius=10.0*cm;
-    const real_t gap=2.0*mm;
+    const real_t gap=4.0*mm;
     const size_t N_ports=8;
     const int_t pg1=1; 
     const int_t pg2=2; 
@@ -889,8 +889,8 @@ void test_engine_1d_two_loops_overlapping(){
 
         create_two_loops(radius, L_spacing(i), gap, clmax);
         engine.set(freq, mu_b, eps_b, clmax, 1.0, a, N_ports);
-        engine.assign_port(0, +1.0, Z_0, pg1, p1, 0.0, 0.0);
-        engine.assign_port(1, +0.0, Z_0, pg2, p2, 0.0, 0.0);
+        engine.assign_port(0, +1.0, Z_0+1.0/(j*omega*C_tuning), pg1, p1, 0.0, 0.0);
+        engine.assign_port(1, +0.0, Z_0+1.0/(j*omega*C_tuning), pg2, p2, 0.0, 0.0);
         engine.assign_port(2, +0.0, 1.0/(j*omega*C_tuning), pg3, p3, 0.0, 0.0);
         engine.assign_port(3, +0.0, 1.0/(j*omega*C_tuning), pg4, p4, 0.0, 0.0);
         engine.assign_port(4, +0.0, 1.0/(j*omega*C_tuning), pg5, p5, 0.0, 0.0);

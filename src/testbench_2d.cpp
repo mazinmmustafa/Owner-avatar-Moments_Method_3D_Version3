@@ -53,7 +53,7 @@ void test_engine_2d_sphere_RCS(){
     const real_t GHz=1.0E+9;
     const real_t freq=0.75*GHz;
     const real_t lambda=c_0/freq;
-    const real_t clmax=lambda/5.0;
+    const real_t clmax=lambda/16.0;
     const complex_t mu_b=1.0, eps_b=1.0;
     const real_t radius=0.5;
 

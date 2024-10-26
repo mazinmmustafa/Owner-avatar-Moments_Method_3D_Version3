@@ -20,9 +20,9 @@ int main(){
     // test_engine_1d_far_field_transmission_line();
     // test_engine_1d_near_field_vertical_dipole();
     // test_engine_2d_transmission_line_near_field_1d();
-    // test_engine_1d_single_loop_capacitor_sweep();
+    test_engine_1d_single_loop_capacitor_sweep();
     // test_engine_1d_single_loop();
-    test_engine_1d_two_loops_overlapping();
+    // test_engine_1d_two_loops_overlapping();
     //
     // test_engine_2d_2d();
     // test_engine_2d_sphere_RCS();
